@@ -1,7 +1,120 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+@inject HttpClient Http
+@using System.ComponentModel.DataAnnotations
+@using Telerik.Blazor
+@using Telerik.Blazor.Components
+@using Telerik.DataSource
+@using Telerik.SvgIcons
+@using Telerik.FontIcons
+@using Telerik.DataSource;
+@using Blazored.FluentValidation
+@using FluentValidation
 
-<h5> PRUEBA APESA</h5>
 
-<TelerikButton > Aló  </TelerikButton>
+<h1> PRUEBA APESA</h1>
+<TelerikRootComponent>
+
+    <TelerikGrid Data="SF" EditMode="@GridEditMode.Inline"
+                 Height="500px"
+                 Resizable="true"
+                 Pageable="true"            
+                 OnDelete="@Delete"
+                 OnCreate="@Create"
+                 OnUpdate="@Update"
+                 >    
+      <GridSettings>
+            <GridValidationSettings>
+                <ValidatorTemplate>
+                    <FluentValidationValidator Validator="@Validator" />
+                </ValidatorTemplate>
+            </GridValidationSettings>
+        </GridSettings>
+
+        <GridToolBarTemplate>
+            <GridCommandButton Command="Add" Icon="@SvgIcon.Plus">Añadir Servicio Financiero</GridCommandButton>
+        </GridToolBarTemplate>
+    
+        <GridColumns>
+            <GridColumn Field="Id" ></GridColumn>
+            <GridColumn Field="Nombre"> </GridColumn>
+            <GridColumn Field="Tipo"> </GridColumn>
+            <GridColumn Field="Tasa"> </GridColumn>
+            <GridCommandColumn Width="250px">
+                <GridCommandButton Command="Edit" Icon="@SvgIcon.Pencil" >Actualizar</GridCommandButton>
+                <GridCommandButton Command="Delete" ThemeColor="@ThemeConstants.Button.ThemeColor.Primary"  Icon="@SvgIcon.Trash">Eliminar</GridCommandButton>
+
+                <GridCommandButton Command="Save" Icon="@SvgIcon.Save" ShowInEdit="true">Guardar</GridCommandButton>
+                <GridCommandButton Command="Cancel" Icon="@SvgIcon.Cancel" ShowInEdit="true">Cancelar</GridCommandButton>
+            </GridCommandColumn>
+        </GridColumns>
+    </TelerikGrid>
+
+</TelerikRootComponent>
+
+
+@code{
+
+    public static List<ServiciosFinancieros> SF = new List<ServiciosFinancieros>();
+
+
+    async Task CargaInicial()
+    {
+        var respuestaSF = await Http.GetFromJsonAsync<List<ServiciosFinancieros>>("http://localhost:5283/api/ServiciosFinancieros");
+        SF = respuestaSF;
+    }
+
+    async Task Create(GridCommandEventArgs args)
+    {
+        var addItem = (ServiciosFinancieros)args.Item;
+        await Http.PostAsJsonAsync("http://localhost:5283/api/ServiciosFinancieros", addItem);
+        await CargaInicial();
+    }
+
+    async Task Update(GridCommandEventArgs args)
+    {
+        var addItemU = (ServiciosFinancieros)args.Item;
+        await Http.PutAsJsonAsync("http://localhost:5283/api/ServiciosFinancieros", addItemU);
+        await CargaInicial();
+    }
+
+    async Task Delete(GridCommandEventArgs args)
+    {
+        var addItemD = (ServiciosFinancieros)args.Item;
+        await Http.DeleteAsync("http://localhost:5283/api/ServiciosFinancieros/?id=" + addItemD.Id);
+        await CargaInicial();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargaInicial();
+    }
+
+    private SampleDataValidator Validator = new();
+
+    public class SampleDataValidator : AbstractValidator<ServiciosFinancieros>
+    {
+        public SampleDataValidator()
+        {
+            RuleFor(item => item.Id).NotEmpty();
+            RuleFor(item => item.Nombre).NotEmpty().MaximumLength(50).MinimumLength(10);
+            RuleFor(item => item.Tipo).NotEmpty().MaximumLength(20).MinimumLength(5);
+            RuleFor(item => item.Tasa).NotEmpty();
+        }
+    }
+
+    public class ServiciosFinancieros
+    {
+        [Required]
+        public int? Id { get; set; }
+
+        [Required]
+        public string? Nombre { get; set; }
+        
+        [Required(ErrorMessage = "Description is required")]
+        public string? Tipo { get; set; }
+
+        [Required(ErrorMessage = "Description is required")]
+        public int? Tasa { get; set; }
+    }
+}
